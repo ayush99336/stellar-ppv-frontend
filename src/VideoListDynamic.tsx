@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { getVideoCount, getVideoInfo, hasAccess, buyVideo, getVideoContent } from "./realContractHelpers";
 
 const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY;
 
@@ -15,23 +14,36 @@ interface VideoListProps {
   refresh: boolean;
 }
 
-export default function VideoList({ walletAddress, refresh }: VideoListProps) {
+export default function VideoListDynamic({ walletAddress, refresh }: VideoListProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadVideos = async () => {
     try {
       setLoading(true);
-      const count = await getVideoCount();
+      console.log('Loading videos from real contract...');
+      
+      // Only use real contract helpers
+      const contractHelpers = await import("./realContractHelpers");
+      
+      console.log('Getting video count...');
+      const count = await contractHelpers.getVideoCount();
+      console.log('Video count:', count);
+      
       const videoList: Video[] = [];
 
       for (let i = 1n; i <= count; i++) {
-        const info = await getVideoInfo(i);
+        console.log(`Getting info for video ${i}...`);
+        const info = await contractHelpers.getVideoInfo(i);
+        console.log(`Video ${i} info:`, info);
+        
         if (info) {
           const [thumbnailIpfs, price] = info;
           const userHasAccess = walletAddress 
-            ? await hasAccess(walletAddress, i)
+            ? await contractHelpers.hasAccess(walletAddress, i)
             : false;
+          
+          console.log(`Video ${i} access for ${walletAddress}:`, userHasAccess);
 
           videoList.push({
             id: i,
@@ -63,7 +75,10 @@ export default function VideoList({ walletAddress, refresh }: VideoListProps) {
     console.log('Attempting to buy video:', videoId, 'by user:', walletAddress);
 
     try {
-      await buyVideo(walletAddress, videoId);
+      // Only use real contract helpers
+      const contractHelpers = await import("./realContractHelpers");
+        
+      await contractHelpers.buyVideo(walletAddress, videoId);
       console.log('Purchase successful for video:', videoId);
       alert('Video purchased successfully!');
       // After successful purchase, reload videos
@@ -81,7 +96,10 @@ export default function VideoList({ walletAddress, refresh }: VideoListProps) {
     }
 
     try {
-      const content = await getVideoContent(walletAddress, videoId);
+      // Only use real contract helpers
+      const contractHelpers = await import("./realContractHelpers");
+        
+      const content = await contractHelpers.getVideoContent(walletAddress, videoId);
       if (content) {
         const [videoIpfs, _thumbnailIpfs] = content;
         // Open video in new tab
@@ -103,7 +121,7 @@ export default function VideoList({ walletAddress, refresh }: VideoListProps) {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Available Videos</h2>
+      <h2 className="text-2xl font-bold mb-4">Available Videos (On-chain)</h2>
       
       {videos.length === 0 ? (
         <p className="text-gray-500">No videos uploaded yet.</p>

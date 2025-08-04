@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   StellarWalletsKit,
   WalletNetwork,
@@ -15,22 +15,28 @@ export default function StellarWalletConnect({ onConnect, onDisconnect }: {
   onDisconnect: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [buttonCreated, setButtonCreated] = useState(false);
 
   useEffect(() => {
-    if (containerRef.current) {
-      kit.createButton({
-        container: containerRef.current,
-        onConnect: ({ address }) => {
-          console.log("Connected address:", address);
-          onConnect(address);
-        },
-        onDisconnect: () => {
-          console.log("Disconnected");
-          onDisconnect();
-        },
-      });
+    if (containerRef.current && !buttonCreated) {
+      try {
+        kit.createButton({
+          container: containerRef.current,
+          onConnect: ({ address }) => {
+            console.log("Connected address:", address);
+            onConnect(address);
+          },
+          onDisconnect: () => {
+            console.log("Disconnected");
+            onDisconnect();
+          },
+        });
+        setButtonCreated(true);
+      } catch (error) {
+        console.warn("Button already exists:", error);
+      }
     }
-  }, [onConnect, onDisconnect]);
+  }, [onConnect, onDisconnect, buttonCreated]);
 
   return <div ref={containerRef} style={{ minHeight: 48 }} />;
 }

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { pinata } from "./pinata";
-import { uploadToContract } from "./realContractHelpers";
 
 const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY;
 
@@ -48,10 +47,13 @@ export default function VideoUpload({ walletAddress, onVideoUploaded }: VideoUpl
       const thumbnailIpfsHash = await uploadToPinata(thumbnailFile);
       setUploadStatus("Registering on blockchain...");
 
-      // Register on blockchain
+      // Register on blockchain using real contract
       const priceInStroops = BigInt(parseFloat(price) * 10_000_000); // Convert XLM to stroops
       
-      const videoId = await uploadToContract({
+      // Use only real contract helpers
+      const contractHelpers = await import("./realContractHelpers");
+      
+      const videoId = await contractHelpers.uploadToContract({
         uploader: walletAddress,
         videoIpfs: videoIpfsHash,
         thumbnailIpfs: thumbnailIpfsHash,
@@ -74,7 +76,7 @@ export default function VideoUpload({ walletAddress, onVideoUploaded }: VideoUpl
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Upload Video</h2>
+      <h2 className="text-2xl font-bold mb-4">Upload Video (On-chain)</h2>
       
       <div className="space-y-4">
         <div>

@@ -1,8 +1,8 @@
 
 import { useState } from "react";
 import StellarWalletConnect from "./StellarWalletConnect";
-import VideoUpload from "./VideoUpload";
-import VideoList from "./VideoList";
+import VideoUploadDynamic from "./VideoUploadDynamic";
+import VideoListDynamic from "./VideoListDynamic";
 
 function App() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -24,16 +24,40 @@ function App() {
           />
         </div>
 
+        {/* Test Contract Functions Button */}
+        <div className="mb-4">
+          <button
+            onClick={async () => {
+              console.log('Testing contract functions...');
+              try {
+                const { getVideoCount, getVideoInfo } = await import('./realContractHelpers');
+                const count = await getVideoCount();
+                console.log('Video count:', count);
+                
+                for (let i = 1n; i <= count; i++) {
+                  const info = await getVideoInfo(i);
+                  console.log(`Video ${i} info:`, info);
+                }
+              } catch (error) {
+                console.error('Test failed:', error);
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Test Contract Functions
+          </button>
+        </div>
+
         {walletAddress && (
           <div className="mb-8">
-            <VideoUpload 
+            <VideoUploadDynamic 
               walletAddress={walletAddress} 
               onVideoUploaded={handleVideoUploaded}
             />
           </div>
         )}
 
-        <VideoList 
+        <VideoListDynamic 
           walletAddress={walletAddress}
           refresh={refreshVideos}
         />
