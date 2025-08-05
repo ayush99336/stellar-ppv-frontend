@@ -6,10 +6,10 @@ import VideoListDynamic from "./VideoListDynamic";
 
 function App() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [refreshVideos, setRefreshVideos] = useState(false);
+  const [refreshVideos, setRefreshVideos] = useState<number>(0);
 
   const handleVideoUploaded = () => {
-    setRefreshVideos(!refreshVideos);
+    setRefreshVideos(prev => prev + 1);
   };
 
   return (

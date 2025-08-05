@@ -100,6 +100,8 @@ export async function uploadToContract(params: UploadParams): Promise<bigint> {
       const simResult = simulationResult.result as any;
       if (simResult.Ok !== undefined) {
         return BigInt(simResult.Ok);
+      } else if (simResult.value !== undefined) {
+        return BigInt(simResult.value);
       } else if (typeof simResult === 'number' || typeof simResult === 'bigint') {
         return BigInt(simResult);
       }
@@ -110,18 +112,31 @@ export async function uploadToContract(params: UploadParams): Promise<bigint> {
       const txResult = result.result as any;
       if (txResult.Ok !== undefined) {
         return BigInt(txResult.Ok);
+      } else if (txResult.value !== undefined) {
+        return BigInt(txResult.value);
       } else if (typeof txResult === 'number' || typeof txResult === 'bigint') {
         return BigInt(txResult);
       }
-    } else {
-      // If we can't parse the result but the transaction succeeded,
-      // get the video count to determine the new video ID
-      console.log('Result parsing failed, but transaction succeeded. Getting video count...');
+    }
+    
+    // If we can't parse the result but the transaction succeeded,
+    // get the video count to determine the new video ID
+    console.log('Result parsing failed, but transaction succeeded. Getting video count...');
+    const videoCount = await getVideoCount();
+    return videoCount; // The latest video ID should be the count
+    
+  } catch (error) {
+    console.error('Contract upload failed:', error);
+    
+    // Check if this is just an XDR parsing error but the transaction actually succeeded
+    if (error instanceof Error && error.message.includes('Bad union switch')) {
+      console.log('Transaction may have succeeded despite XDR parsing error');
+      // Get the video count to determine the new video ID
+      console.log('Getting video count after parsing error...');
       const videoCount = await getVideoCount();
       return videoCount; // The latest video ID should be the count
     }
-  } catch (error) {
-    console.error('Contract upload failed:', error);
+    
     throw error;
   }
 }
@@ -185,7 +200,7 @@ export async function buyVideo(buyer: string, videoId: bigint): Promise<void> {
   }
 }
 
-export async function getVideoInfo(videoId: bigint): Promise<[string, bigint] | null> {
+export async function getVideoInfo(videoId: bigint): Promise<[string, bigint, string?] | null> {
   try {
     const contract = getContractClient();
     
@@ -229,8 +244,8 @@ export async function getVideoInfo(videoId: bigint): Promise<[string, bigint] | 
       
       console.log(`Video ${videoId} info:`, videoInfo);
       
-      // Return thumbnail and price as expected by the UI
-      return [videoInfo.thumbnail_ipfs, BigInt(videoInfo.price)];
+      // Return thumbnail, price, and title as expected by the UI
+      return [videoInfo.thumbnail_ipfs, BigInt(videoInfo.price), videoInfo.title];
     }
     
     console.warn('No valid result found for video:', videoId);
@@ -260,10 +275,34 @@ export async function getVideoContent(viewer: string, videoId: bigint): Promise<
     const tx = await client.view({ viewer, video_id: videoId });
     console.log("raw view result:", tx.result);
     
-    if (tx.result && Array.isArray(tx.result) && tx.result.length >= 2) {
-      const [videoIpfs, thumbnailIpfs] = tx.result;
-      console.log('Parsed video content:', { videoIpfs, thumbnailIpfs });
-      return [videoIpfs as string, thumbnailIpfs as string];
+    if (tx.result) {
+      let contentResult: any;
+      
+      // Handle the Ok2 { value: [video_ipfs, thumbnail_ipfs] } structure
+      if (typeof tx.result === 'object' && tx.result !== null) {
+        const result = tx.result as any;
+        
+        // Check if it's an Ok2 instance with a value property
+        if (result.value && Array.isArray(result.value)) {
+          contentResult = result.value;
+        } else if ('Ok' in result && Array.isArray(result.Ok)) {
+          contentResult = result.Ok;
+        } else if (Array.isArray(result)) {
+          contentResult = result;
+        } else {
+          console.warn('Unexpected view result structure:', tx.result);
+          return null;
+        }
+      } else {
+        console.warn('View result is not an object:', tx.result);
+        return null;
+      }
+      
+      if (Array.isArray(contentResult) && contentResult.length >= 2) {
+        const [videoIpfs, thumbnailIpfs] = contentResult;
+        console.log('Parsed video content:', { videoIpfs, thumbnailIpfs });
+        return [videoIpfs as string, thumbnailIpfs as string];
+      }
     }
     
     console.warn('No video content found or unexpected format:', tx.result);
