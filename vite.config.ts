@@ -8,4 +8,13 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  optimizeDeps: {
+    include: ['@stellar/stellar-sdk', '@creit.tech/stellar-wallets-kit'],
+    exclude: []
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/]
+    }
+  }
 })

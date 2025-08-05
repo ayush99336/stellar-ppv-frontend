@@ -2,8 +2,6 @@ import { useState } from "react";
 import { pinata } from "./pinata";
 import { uploadToContract } from "./realContractHelpers";
 
-const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY;
-
 interface VideoUploadProps {
   walletAddress: string | null;
   onVideoUploaded: () => void;

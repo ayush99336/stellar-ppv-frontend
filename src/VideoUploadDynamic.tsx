@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { pinata } from "./pinata";
 
-const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY;
-
 interface VideoUploadProps {
   walletAddress: string | null;
   onVideoUploaded: () => void;
@@ -11,6 +9,8 @@ interface VideoUploadProps {
 export default function VideoUpload({ walletAddress, onVideoUploaded }: VideoUploadProps) {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>("");
@@ -30,8 +30,8 @@ export default function VideoUpload({ walletAddress, onVideoUploaded }: VideoUpl
       return;
     }
 
-    if (!videoFile || !thumbnailFile || !price) {
-      alert("Please provide video, thumbnail, and price");
+    if (!videoFile || !thumbnailFile || !title || !description || !price) {
+      alert("Please provide video, thumbnail, title, description, and price");
       return;
     }
 
@@ -57,12 +57,16 @@ export default function VideoUpload({ walletAddress, onVideoUploaded }: VideoUpl
         uploader: walletAddress,
         videoIpfs: videoIpfsHash,
         thumbnailIpfs: thumbnailIpfsHash,
+        title: title,
+        description: description,
         price: priceInStroops
       });
 
       setUploadStatus(`Upload successful! Video ID: ${videoId}`);
       setVideoFile(null);
       setThumbnailFile(null);
+      setTitle("");
+      setDescription("");
       setPrice("");
       onVideoUploaded();
       
@@ -85,6 +89,28 @@ export default function VideoUpload({ walletAddress, onVideoUploaded }: VideoUpl
             type="file"
             accept="video/*"
             onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Video Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter video title"
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Video Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter video description"
+            rows={3}
             className="w-full p-2 border rounded"
           />
         </div>
